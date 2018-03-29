@@ -39,6 +39,7 @@ class ScalaInstrumentationTest extends AgentTestRunner {
     findSpan(trace, "goodFuture").context().getParentId() == trace[0].context().getSpanId()
     findSpan(trace, "badFuture").context().getParentId() == trace[0].context().getSpanId()
     findSpan(trace, "successCallback").context().getParentId() == trace[0].context().getSpanId()
+    findSpan(trace, "successCallback").context().getParentId() == trace[0].context().getSpanId()
     findSpan(trace, "failureCallback").context().getParentId() == trace[0].context().getSpanId()
   }
 

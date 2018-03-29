@@ -74,8 +74,9 @@ public final class PlayInstrumentation extends Instrumenter.Configurable {
   public static class PlayAdvice {
     @Advice.OnMethodEnter(suppress = Throwable.class)
     public static Scope startSpan(@Advice.Argument(0) final Request req) {
-      // TODO
-      // begin tracking across threads
+      // TODO begin tracking across threads
+      // if context instanceof TraceScope
+      // -- context.setAsyncLink(true)
 
       if (GlobalTracer.get().activeSpan() == null) {
         final SpanContext extractedContext;
@@ -203,8 +204,9 @@ public final class PlayInstrumentation extends Instrumenter.Configurable {
     }
 
     public Result apply(Result result) {
-      // TODO
-      // stop tracking across threads
+      // TODO stop tracking across threads
+      // if context instanceof TraceScope
+      // -- context.setAsyncLink(false)
       try {
         Tags.HTTP_STATUS.set(span, result.header().status());
       } catch (Throwable t) {

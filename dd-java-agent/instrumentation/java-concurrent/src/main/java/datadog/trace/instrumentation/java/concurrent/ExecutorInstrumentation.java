@@ -140,7 +140,8 @@ public final class ExecutorInstrumentation extends Instrumenter.Configurable {
     public static DatadogWrapper wrapJob(
         @Advice.Argument(value = 0, readOnly = false) Runnable task) {
       final Scope scope = GlobalTracer.get().scopeManager().active();
-      if (scope instanceof TraceScope && task != null && !(task instanceof DatadogWrapper)) {
+      if (scope instanceof TraceScope && ((TraceScope)scope).isAsyncLinking()
+          && task != null && !(task instanceof DatadogWrapper)) {
         task = new RunnableWrapper(task, (TraceScope) scope);
         return (RunnableWrapper) task;
       }
@@ -161,7 +162,8 @@ public final class ExecutorInstrumentation extends Instrumenter.Configurable {
     public static DatadogWrapper wrapJob(
         @Advice.Argument(value = 0, readOnly = false) Callable task) {
       final Scope scope = GlobalTracer.get().scopeManager().active();
-      if (scope instanceof TraceScope && task != null && !(task instanceof DatadogWrapper)) {
+      if (scope instanceof TraceScope && ((TraceScope)scope).isAsyncLinking()
+          && task != null && !(task instanceof DatadogWrapper)) {
         task = new CallableWrapper(task, (TraceScope) scope);
         return (CallableWrapper) task;
       }
@@ -182,7 +184,7 @@ public final class ExecutorInstrumentation extends Instrumenter.Configurable {
     public static Collection<?> wrapJob(
         @Advice.Argument(value = 0, readOnly = false) Collection<? extends Callable<?>> tasks) {
       final Scope scope = GlobalTracer.get().scopeManager().active();
-      if (scope instanceof TraceScope) {
+      if (scope instanceof TraceScope && ((TraceScope)scope).isAsyncLinking()) {
         Collection<Callable<?>> wrappedTasks = new ArrayList<>(tasks.size());
         for (Callable task : tasks) {
           if (task != null) {
@@ -217,13 +219,13 @@ public final class ExecutorInstrumentation extends Instrumenter.Configurable {
     protected final TraceScope.Continuation continuation;
 
     public DatadogWrapper(TraceScope scope) {
-      continuation = scope.capture(true);
+      continuation = scope.capture();
       log.debug("created continuation {} from scope {}", continuation, scope);
     }
 
     public void cancel() {
       if (null != continuation) {
-        continuation.activate().close();
+        continuation.close();
         log.debug("canceled continuation {}", continuation);
       }
     }
@@ -241,6 +243,7 @@ public final class ExecutorInstrumentation extends Instrumenter.Configurable {
     @Override
     public void run() {
       final TraceScope context = continuation.activate();
+      context.setAsyncLinking(true);
       try {
         delegatee.run();
       } finally {
@@ -261,6 +264,7 @@ public final class ExecutorInstrumentation extends Instrumenter.Configurable {
     @Override
     public T call() throws Exception {
       final TraceScope context = continuation.activate();
+      context.setAsyncLinking(true);
       try {
         return delegatee.call();
       } finally {
